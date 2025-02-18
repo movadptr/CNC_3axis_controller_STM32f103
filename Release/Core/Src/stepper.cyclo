@@ -1,0 +1,10 @@
+../Core/Src/stepper.c:98:6:get_limit_sw_state	7
+../Core/Src/stepper.c:150:6:stepz	7
+../Core/Src/stepper.c:309:6:stepdelay	11
+../Core/Src/stepper.c:172:6:stepxyz3D	30
+../Core/Src/stepper.c:20:6:HPGL_PA	4
+../Core/Src/stepper.c:63:6:HPGL_PR	4
+../Core/Src/stepper.c:240:6:stepxyz25D	30
+../Core/Src/stepper.c:119:6:gotozero	3
+../Core/Src/stepper.c:369:6:STSPIN220_power_down	1
+../Core/Src/stepper.c:377:6:STSPIN220_init	16

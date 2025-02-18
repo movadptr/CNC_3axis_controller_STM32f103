@@ -1,0 +1,13 @@
+../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_gpio.h:722:26:LL_GPIO_IsInputPinSet	1
+../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_gpio.h:803:22:LL_GPIO_SetOutputPin	1
+../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_gpio.h:832:22:LL_GPIO_ResetOutputPin	1
+../Core/Src/stepper.c:20:6:HPGL_PA	4
+../Core/Src/stepper.c:63:6:HPGL_PR	4
+../Core/Src/stepper.c:98:6:get_limit_sw_state	7
+../Core/Src/stepper.c:119:6:gotozero	5
+../Core/Src/stepper.c:150:6:stepz	7
+../Core/Src/stepper.c:172:6:stepxyz3D	30
+../Core/Src/stepper.c:240:6:stepxyz25D	30
+../Core/Src/stepper.c:309:6:stepdelay	14
+../Core/Src/stepper.c:369:6:STSPIN220_power_down	1
+../Core/Src/stepper.c:377:6:STSPIN220_init	19

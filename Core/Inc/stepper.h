@@ -21,6 +21,10 @@
 #define YaxisLen	14200L
 #define ZaxisLen	1900L
 
+#define XSTEPLENMM	0.02269791667f
+#define YSTEPLENMM	0.02082394366f
+#define ZSTEPLENMM	0.01315789474f
+
 //limit switch defines
 #define SW_X_H	0x01//X axis home side switch
 #define SW_X_E	0x02//X axis end side switch
@@ -47,21 +51,11 @@ typedef struct
 	uint32_t current_pos_x;
 	uint32_t current_pos_y;
 	uint32_t current_pos_z;
-	int32_t current_toolpos;
-	uint8_t movespeed;
+	int32_t toolspeed;//mm/s	//if zero then a default val will be used
+	uint32_t stp_delay_us;
 	uint16_t curr_state;
 	uint8_t error_state;
 }CP;
-//bit masks for CP.movespeed
-
-#define	toolspeed_0	0x01
-#define	toolspeed_1	0x02
-#define	toolspeed_2	0x04
-#define	toolspeed_3	0x08
-#define	toolspeed_4	0x10
-#define	toolspeed_5	0x20
-#define	toolspeed_6	0x40
-#define	toolspeed_7	0x80
 
 //bit masks for CP.curr_state
 #define AbsoluteStep_MSK	0x01
@@ -102,7 +96,7 @@ void stepM(uint8_t M_axis);
 void stepp(uint8_t M_axis, int8_t dir, uint32_t steps);
 void rampup(uint8_t M_axis);
 void gotozero(CP* currentpos);
-void stepdelay(CP* currentpos);
+void StepDelay(CP* currentpos);
 
 void stepz(uint32_t z, int8_t dirz, CP* currentpos);
 

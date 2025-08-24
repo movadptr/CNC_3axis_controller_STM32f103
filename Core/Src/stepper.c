@@ -116,6 +116,8 @@ void get_limit_sw_state(void)
 	else{ switches |= SW_Z_E;}
 }
 
+
+//TODO don't use and delete stepz() and stepxyz25D()
 void gotozero(CP* currentpos)
 {
 	uint32_t gx=0, gy=0;
@@ -147,28 +149,6 @@ void gotozero(CP* currentpos)
 	msDelay(100);
 }
 
-void stepz(uint32_t z, int8_t dirz, CP* currentpos)
-{
-	uint32_t z_steps_taken = 0;
-
-	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}
-	get_limit_sw_state();
-	usDelay(1);
-
-	while(  (z_steps_taken<z) && IfMovingAwayFromSwitch(dirz, SW_Z_H, SW_Z_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
-	{
-		LL_GPIO_SetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);//motor steps on rising edge
-		z_steps_taken++;
-		//stepdelay(currentpos);
-		usDelay(800);
-		LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
-		//stepdelay(currentpos);
-		usDelay(800);
-	}
-
-	currentpos->current_pos_z += (z_steps_taken*dirz);
-}
-
 void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int8_t dirz, CP* currentpos)
 {
 	axle aX={dirx, SW_X_H, SW_X_E, x, 0, STEP_X_GPIO_Port, STEP_X_Pin};
@@ -184,11 +164,24 @@ void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int
 	axle* tmp;
 	axle* axt[3]={&aX, &aY, &aZ};
 
+	float toolpath_len = 0;
+
 	while(swap)//sorting, small to big
 	{
 		swap=0;
 		if(axt[0]->steps > axt[1]->steps)	{tmp=axt[0]; axt[0]=axt[1]; axt[1]=tmp; swap=1;} else{}
 		if(axt[1]->steps > axt[2]->steps)	{tmp=axt[1]; axt[1]=axt[2]; axt[2]=tmp; swap=1;} else{}
+	}
+
+	//only calculate this if toolspeed not zero, otherwise a default value will be used in StepDelay()
+	if((currentpos->toolspeed != 0) && ((currentpos->curr_state&(FeedMove|RapidMove))==FeedMove))
+	{
+		//calculate the distance between current point and the destination
+		toolpath_len = sqrt((x*XSTEPLENMM*x*XSTEPLENMM)+(y*YSTEPLENMM*y*YSTEPLENMM));
+		toolpath_len = sqrt((toolpath_len*toolpath_len)+(z*ZSTEPLENMM*z*ZSTEPLENMM));
+		//calculate the delay to achive the required tool speed
+		//the outer axis will perform a step in every iteration so we use that stepsize for the calc
+		currentpos->stp_delay_us = (uint32_t)(((toolpath_len/*mm*/ / currentpos->toolspeed/*mm/s*/) / axt[2]->steps) * 1000 * 1000/*us*/);
 	}
 
 	if(dirx==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}
@@ -225,11 +218,11 @@ void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int
 				}
 			}
 		}
-		stepdelay(currentpos);
+		StepDelay(currentpos);
 		LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
 		LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
 		LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
-		stepdelay(currentpos);
+		StepDelay(currentpos);
 	}
 
 	currentpos->current_pos_x += (aX.stepsTaken * aX.dir);
@@ -269,10 +262,12 @@ void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, in
 					y_steps_taken++;
 				}
 			}
-			stepdelay(currentpos);
+			//StepDelay(currentpos);
+			usDelay(800);
 			LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
 			LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
-			stepdelay(currentpos);
+			//StepDelay(currentpos);
+			usDelay(800);
 		}
 	}
 	else
@@ -295,10 +290,12 @@ void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, in
 					x_steps_taken++;
 				}
 			}
-			stepdelay(currentpos);
+			//StepDelay(currentpos);
+			usDelay(800);
 			LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
 			LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
-			stepdelay(currentpos);
+			//StepDelay(currentpos);
+			usDelay(800);
 		}
 	}
 
@@ -306,33 +303,42 @@ void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, in
 	currentpos->current_pos_y += (y_steps_taken*diry);
 }
 
-void stepdelay(CP* currentpos)
+void stepz(uint32_t z, int8_t dirz, CP* currentpos)
+{
+	uint32_t z_steps_taken = 0;
+
+	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}
+	get_limit_sw_state();
+	usDelay(1);
+
+	while(  (z_steps_taken<z) && IfMovingAwayFromSwitch(dirz, SW_Z_H, SW_Z_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
+	{
+		LL_GPIO_SetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);//motor steps on rising edge
+		z_steps_taken++;
+		//stepdelay(currentpos);
+		usDelay(800);
+		LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
+		//stepdelay(currentpos);
+		usDelay(800);
+	}
+
+	currentpos->current_pos_z += (z_steps_taken*dirz);
+}
+
+void StepDelay(CP* currentpos)
 {
 	switch(currentpos->curr_state & (FeedMove|RapidMove))
 	{
 		case RapidMove:		usDelay(650);
 							break;
 
-		case FeedMove:		switch(currentpos->movespeed)
+		case FeedMove:		if(currentpos->toolspeed == 0)
 							{
-								case toolspeed_0:	usDelay(3000);
-													break;
-								case toolspeed_1:	usDelay(2000);
-													break;
-								case toolspeed_2:	usDelay(1600);
-													break;
-								case toolspeed_3:	usDelay(1200);
-													break;
-								case toolspeed_4:	usDelay(1000);
-													break;
-								case toolspeed_5:	usDelay(800);
-													break;
-								case toolspeed_6:	usDelay(750);
-													break;
-								case toolspeed_7:	usDelay(650);
-													break;
-								default:			usDelay(650);
-													break;
+								usDelay(650);
+							}
+							else
+							{
+								usDelay(currentpos->stp_delay_us);
 							}
 							break;
 
@@ -340,31 +346,6 @@ void stepdelay(CP* currentpos)
 					break;
 	}
 }
-
-
-/*
-#define Z_axis_lowest_pos	0
-#define Z_axis_highest_pos	200
-void set_servo(int32_t zval, CP* currentpos)
-{
-	// 0 val -> -100 means tool is the lowest position
-	// 200 val -> 100 means tool is in the top position
-	if((zval<Z_axis_lowest_pos) || (zval>Z_axis_highest_pos))
-	{
-		currentpos->error_state |= ZaxisPositionError_MSK;
-		Error_Handler();
-	}
-	else
-	{
-		if(currentpos->current_toolpos != zval)
-		{
-			servo_pos(zval-100,TIM2);
-			currentpos->current_toolpos = zval;
-			msDelay((uint32_t)abs((int)currentpos->current_toolpos - (int)zval) + 50);//+50 to give time for the servo
-		}else{}
-	}
-}
-*/
 
 void A4988_power_down(void)
 {

@@ -83,6 +83,7 @@ void msDelay(uint32_t val);
 
 int32_t mypow10(int32_t exponent);
 void eval_and_execute_plot_cmd(uint8_t *cmdstr, uint32_t len, CP *currentpos);
+uint8_t eval_arg_in_cmd(uint8_t* cmdstr, uint8_t startindx, char delimiter, uint8_t maxlen, int32_t* numarg);
 void ResetCDCrxBuffer(void);
 uint8_t CDCsend(uint8_t *str, uint32_t len, uint8_t retries);
 void ext_brd_transmit_string(uint8_t printCmd, uint8_t* strbuff, uint8_t len);

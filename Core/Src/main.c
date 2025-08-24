@@ -116,7 +116,7 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
-  stepper_pos.movespeed |= toolspeed_7;
+  stepper_pos.toolspeed = 20;
   A4988_init(&stepper_pos, stepsize_1_4, stepsize_1_4, stepsize_1_4);
 
   __enable_irq();
@@ -199,7 +199,7 @@ int main(void)
 
 		//initialize
 		case 'I':	//the command only can be the "IN"
-		case 'i':	stepper_pos.movespeed |= toolspeed_7;
+		case 'i':	stepper_pos.toolspeed = 20;// mm/s
 					num_of_cmd_line = 1;
 					gotozero(&stepper_pos);
 					msDelay(100);
@@ -238,41 +238,8 @@ int main(void)
 		case 'v':
 		case 'V':	if( (rxbuffer[1]=='s') || (rxbuffer[1]=='S') )
 					{
-						switch(rxbuffer[2])
-						{
-							case '0':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_0;
-										break;
-
-							case '1':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_1;
-										break;
-
-							case '2':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_2;
-										break;
-
-							case '3':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_3;
-										break;
-
-							case '4':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_4;
-										break;
-
-							case '5':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_5;
-										break;
-
-							case '6':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_6;
-										break;
-
-							default:
-							case '7':	stepper_pos.movespeed = 0;
-										stepper_pos.movespeed |= toolspeed_7;
-										break;
-						}
+						stepper_pos.toolspeed = 0;// eval_arg_in_cmd() fn does not replace the value, it adds the new val to the variable
+						eval_arg_in_cmd(rxbuffer, 2, ';', rxbufend, &stepper_pos.toolspeed);
 					}
 					break;
 		//send filename to LCD
@@ -717,128 +684,12 @@ void eval_and_execute_plot_cmd(uint8_t *cmdstr, uint32_t len, CP *currentpos)
 {
 	//example: PD10669,9079,35;
 
-	int32_t indx = 0, comma = 0, comma2 = 0, semicolon = 0;
-	int32_t pownum = 0;
-	int32_t	numofdigits = 0;
-	uint8_t tmpstr1[10] = {0};
-	uint8_t tmpstr2[10] = {0};
-	uint8_t tmpstr3[10] = {0};
 	int32_t xval = 0, yval = 0, zval = 0;
+	uint8_t delimiterpos = 0;
 
-	//eval first argument of plot cmd//X /////////////////
-	for(indx=2; indx<=len; indx++)//search for the end of the argument (comma) and copy the characters of the argument to a buffer while preparing them for processing
-	{
-		if(cmdstr[indx] == ',')
-		{
-			comma = indx;
-			break;
-		}
-		else
-		{
-			if(cmdstr[indx] != '-')
-			{
-				tmpstr1[indx-2] = cmdstr[indx]-'0';
-			}
-			else
-			{
-				tmpstr1[indx-2] = cmdstr[indx];
-			}
-		}
-	}
-	pownum = 0;
-	numofdigits = (comma-2);
-	indx = numofdigits-1;
-	while(numofdigits > 0)
-	{
-		if( (numofdigits==1) && (tmpstr1[indx]=='-') )
-		{
-			xval *= (-1);
-		}
-		else
-		{
-			xval += tmpstr1[indx]*mypow10(pownum);
-			pownum++;
-		}
-		indx--;
-		numofdigits--;
-	}
-
-	//eval second argument of plot cmd//Y /////////////////
-	for(indx=comma+1; indx<=len; indx++)
-	{
-		if(cmdstr[indx] == ',')
-		{
-			comma2 = indx;
-			break;
-		}
-		else
-		{
-			if(cmdstr[indx] != '-')
-			{
-				tmpstr2[indx-(comma+1)] = cmdstr[indx]-'0';
-			}
-			else
-			{
-				tmpstr2[indx-(comma+1)] = cmdstr[indx];
-			}
-		}
-	}
-	numofdigits	= comma2-(comma+1);//azért +1 mert hozzá kell számolni a vesszőt is, azon is átment a ciklus
-	indx = (numofdigits-1);
-	pownum=0;
-	while(numofdigits > 0)
-	{
-		if( (numofdigits==1) && (tmpstr2[indx]=='-') )
-		{
-			yval *= (-1);
-		}
-		else
-		{
-			yval += tmpstr2[indx]*mypow10(pownum);
-			pownum++;
-		}
-		indx--;
-		numofdigits--;
-	}
-
-	//eval third argument of plot cmd//Z /////////////////
-	for(indx=comma2+1; indx<=len; indx++)
-	{
-		if(cmdstr[indx] == ';')
-		{
-			semicolon = indx;
-			break;
-		}
-		else
-		{
-			if(cmdstr[indx] != '-')
-			{
-				tmpstr3[indx-(comma2+1)] = cmdstr[indx]-'0';
-			}
-			else
-			{
-				tmpstr3[indx-(comma2+1)] = cmdstr[indx];
-			}
-		}
-	}
-	numofdigits	= semicolon-(comma2+1);//azért +1 mert hozzá kell számolni a pontosvesszőt is, azon is átment a ciklus
-	indx = (numofdigits-1);
-	pownum=0;
-	while(numofdigits > 0)
-	{
-		if( (numofdigits==1) && (tmpstr3[indx]=='-') )
-		{
-			zval *= (-1);
-		}
-		else
-		{
-			zval += tmpstr3[indx]*mypow10(pownum);
-			pownum++;
-		}
-		indx--;
-		numofdigits--;
-	}
-
+	delimiterpos = eval_arg_in_cmd(cmdstr, 2, ',', len, &xval);
+	delimiterpos = eval_arg_in_cmd(cmdstr, delimiterpos+1, ',', len, &yval);
+	delimiterpos = eval_arg_in_cmd(cmdstr, delimiterpos+1, ';', len, &zval);
 
 	switch(stepper_pos.curr_state & (AbsoluteStep_MSK|RelativeStep_MSK))
 	{
@@ -853,6 +704,54 @@ void eval_and_execute_plot_cmd(uint8_t *cmdstr, uint32_t len, CP *currentpos)
 								HPGL_PA(xval, yval, zval, currentpos);
 								break;
 	}
+}
+
+uint8_t eval_arg_in_cmd(uint8_t* cmdstr, uint8_t startindx, char delimiter, uint8_t maxlen, int32_t* numarg)
+{
+	uint8_t indx = 0;
+	uint8_t delimiter_pos = 0;
+	uint8_t tmpstr[10] = {0};
+	uint8_t pownum = 0;
+	uint8_t	numofdigits = 0;
+
+	for( indx=startindx; indx<=maxlen; indx++)//search for the end of the argument (delimiter) and copy the characters of the argument to a buffer while preparing them for processing
+	{
+		if(cmdstr[indx] == delimiter)
+		{
+			delimiter_pos = indx;
+			break;
+		}
+		else
+		{
+			if(cmdstr[indx] != '-')
+			{
+				tmpstr[indx-startindx] = cmdstr[indx]-'0';
+			}
+			else
+			{
+				tmpstr[indx-startindx] = cmdstr[indx];
+			}
+		}
+	}
+	pownum = 0;
+	numofdigits = delimiter_pos-startindx;
+	indx = numofdigits-1;
+	while(numofdigits > 0)
+	{
+		if( (numofdigits==1) && (tmpstr[indx]=='-') )
+		{
+			(*numarg) *= (-1);
+		}
+		else
+		{
+			(*numarg) += tmpstr[indx]*mypow10(pownum);
+			pownum++;
+		}
+		indx--;
+		numofdigits--;
+	}
+
+	return delimiter_pos;
 }
 
 int32_t mypow10(int32_t exponent)

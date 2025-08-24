@@ -216,8 +216,8 @@ void EXTI4_IRQHandler(void)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_4);
     /* USER CODE BEGIN LL_EXTI_LINE_4 */
-    if(LL_GPIO_IsInputPinSet(SW1_1_GPIO_Port, SW1_1_Pin))	{ switches |= sw11bitMSK;}
-    else{ switches &= ~sw11bitMSK;}
+    if(LL_GPIO_IsInputPinSet(SW_ZH_GPIO_Port, SW_ZH_Pin))	{ switches &= ~SW_Z_H;}
+    else{ switches |= SW_Z_H;}
     /* USER CODE END LL_EXTI_LINE_4 */
   }
   /* USER CODE BEGIN EXTI4_IRQn 1 */
@@ -265,42 +265,45 @@ void EXTI9_5_IRQHandler(void)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_5);
     /* USER CODE BEGIN LL_EXTI_LINE_5 */
-    if(LL_GPIO_IsInputPinSet(SW2_1_GPIO_Port, SW2_1_Pin))	{ switches |= sw21bitMSK;}
-	else{ switches &= ~sw21bitMSK;}
+    if(LL_GPIO_IsInputPinSet(SW_ZE_GPIO_Port, SW_ZE_Pin))	{ switches &= ~SW_Z_E;}
+    else{ switches |= SW_Z_E;}
     /* USER CODE END LL_EXTI_LINE_5 */
+  }
+  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_6) != RESET)
+  {
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_6);
+    /* USER CODE BEGIN LL_EXTI_LINE_6 */
+    if(LL_GPIO_IsInputPinSet(SW_YH_GPIO_Port, SW_YH_Pin))	{ switches |= SW_Y_H;}
+    else{ switches &= ~SW_Y_H;}
+    /* USER CODE END LL_EXTI_LINE_6 */
+  }
+  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_7) != RESET)
+  {
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_7);
+    /* USER CODE BEGIN LL_EXTI_LINE_7 */
+    if(LL_GPIO_IsInputPinSet(SW_YE_GPIO_Port, SW_YE_Pin))	{ switches |= SW_Y_E;}
+    else{ switches &= ~SW_Y_E;}
+    /* USER CODE END LL_EXTI_LINE_7 */
   }
   if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_8) != RESET)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_8);
     /* USER CODE BEGIN LL_EXTI_LINE_8 */
-    if(LL_GPIO_IsInputPinSet(SW1_3_GPIO_Port, SW1_3_Pin))	{ switches |= sw13bitMSK;}
-	else{ switches &= ~sw13bitMSK;}
+    if(LL_GPIO_IsInputPinSet(SW_XH_GPIO_Port, SW_XH_Pin))	{ switches |= SW_X_H;}
+    else{ switches &= ~SW_X_H;}
     /* USER CODE END LL_EXTI_LINE_8 */
   }
   if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_9) != RESET)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_9);
     /* USER CODE BEGIN LL_EXTI_LINE_9 */
-    if(LL_GPIO_IsInputPinSet(SW2_3_GPIO_Port, SW2_3_Pin))	{ switches |= sw23bitMSK;}
-	else{ switches &= ~sw23bitMSK;}
+    if(LL_GPIO_IsInputPinSet(SW_XE_GPIO_Port, SW_XE_Pin))	{ switches |= SW_X_E;}
+    else{ switches &= ~SW_X_E;}
     /* USER CODE END LL_EXTI_LINE_9 */
   }
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
 
   /* USER CODE END EXTI9_5_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-
-  /* USER CODE END TIM2_IRQn 0 */
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-
-  /* USER CODE END TIM2_IRQn 1 */
 }
 
 /**
@@ -334,35 +337,6 @@ void SPI2_IRQHandler(void)
   /* USER CODE BEGIN SPI2_IRQn 1 */
 
   /* USER CODE END SPI2_IRQn 1 */
-}
-
-/**
-  * @brief This function handles EXTI line[15:10] interrupts.
-  */
-void EXTI15_10_IRQHandler(void)
-{
-  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-
-  /* USER CODE END EXTI15_10_IRQn 0 */
-  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_10) != RESET)
-  {
-    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_10);
-    /* USER CODE BEGIN LL_EXTI_LINE_10 */
-    if(LL_GPIO_IsInputPinSet(SW1_4_GPIO_Port, SW1_4_Pin))	{ switches &= ~sw14bitMSK;}
-    else{ switches |= sw14bitMSK;}
-    /* USER CODE END LL_EXTI_LINE_10 */
-  }
-  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_11) != RESET)
-  {
-    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_11);
-    /* USER CODE BEGIN LL_EXTI_LINE_11 */
-    if(LL_GPIO_IsInputPinSet(SW2_4_GPIO_Port, SW2_4_Pin))	{ switches &= ~sw24bitMSK;}
-    else{ switches |= sw24bitMSK;}
-    /* USER CODE END LL_EXTI_LINE_11 */
-  }
-  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
-
-  /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
 /**

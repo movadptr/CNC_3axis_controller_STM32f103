@@ -22,19 +22,19 @@
 #define ZaxisLen	1900L
 
 //limit switch defines
-#define sw11bitMSK	0x01//X axis home side switch
-#define sw21bitMSK	0x02//X axis axle end switch
-#define sw13bitMSK	0x04//Y axis home side switch
-#define sw23bitMSK	0x08//Y axis axle end switch
-#define sw14bitMSK	0x10//Z axis home side switch
-#define sw24bitMSK	0x20//Z axis axle end switch
+#define SW_X_H	0x01//X axis home side switch
+#define SW_X_E	0x02//X axis end side switch
+#define SW_Y_H	0x04//Y axis home side switch
+#define SW_Y_E	0x08//Y axis end side switch
+#define SW_Z_H	0x10//Z axis home side switch
+#define SW_Z_E	0x20//Z axis end side switch
 
-#define sw11bitPOS	0U
-#define sw21bitPOS	1U
-#define sw13bitPOS	2U
-#define sw23bitPOS	3U
-#define sw14bitPOS	4U
-#define sw24bitPOS	5U
+#define SW_X_H_BITPOS	0U
+#define SW_X_E_BITPOS	1U
+#define SW_Y_H_BITPOS	2U
+#define SW_Y_E_BITPOS	3U
+#define SW_Z_H_BITPOS	4U
+#define SW_Z_E_BITPOS	5U
 
 /* deprecated but left here for example
 #define IfMovingAwayFromSwitch_X	(((dirx==BACKWARD)&&((switches&sw11bitMSK)!=sw11bitMSK)) || ((dirx==FORWARD)&&((switches&sw21bitMSK)!=sw21bitMSK)) )
@@ -70,20 +70,11 @@ typedef struct
 #define RapidMove	0x04	//used for fast moves(pen up command PU)
 #define	FeedMove	0x08	//used for cutting moves(pen down command PD)
 
-#define stepsizeX1_0		0x0010//full step
-#define stepsizeX1_2		0x0020//1/2 step
-#define stepsizeX1_4		0x0040//1/4 step
-#define stepsizeX1_8		0x0080//1/8 step
-
-#define stepsizeY1_0		0x0100//full step
-#define stepsizeY1_2		0x0200//1/2 step
-#define stepsizeY1_4		0x0400//1/4 step
-#define stepsizeY1_8		0x0800//1/8 step
-
-#define stepsizeZ1_0		0x1000//full step
-#define stepsizeZ1_2		0x2000//1/2 step
-#define stepsizeZ1_4		0x4000//1/4 step
-#define stepsizeZ1_8		0x8000//1/8 step
+#define stepsize_1_0		0x0010//full step
+#define stepsize_1_2		0x0020//1/2 step
+#define stepsize_1_4		0x0040//1/4 step
+#define stepsize_1_8		0x0080//1/8 step
+#define stepsize_1_16		0x0100//1/16 step
 
 //bit masks for CP.error_state
 #define XaxisLowerLimitReached_MSK	0x01
@@ -105,8 +96,8 @@ typedef struct
 }axle;
 
 void get_limit_sw_state(void);
-void STSPIN220_init(CP *currentpos, uint16_t stepsizeX, uint16_t stepsizeY, uint16_t stepsizeZ);
-void STSPIN220_power_down(void);
+void A4988_init(CP *currentpos, uint16_t stepsizeX, uint16_t stepsizeY, uint16_t stepsizeZ);
+void A4988_power_down(void);
 void stepM(uint8_t M_axis);
 void stepp(uint8_t M_axis, int8_t dir, uint32_t steps);
 void rampup(uint8_t M_axis);

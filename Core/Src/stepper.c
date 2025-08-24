@@ -97,39 +97,39 @@ void HPGL_PR(int32_t xmove, int32_t ymove, int32_t zmove,CP* currentpos)
 
 void get_limit_sw_state(void)
 {
-	if(LL_GPIO_IsInputPinSet(SW1_1_GPIO_Port, SW1_1_Pin))	{ switches |= sw11bitMSK;}
-	else{ switches &= ~sw11bitMSK;}
+	if(LL_GPIO_IsInputPinSet(SW_XH_GPIO_Port, SW_XH_Pin))	{ switches |= SW_X_H;}
+	else{ switches &= ~SW_X_H;}
 
-	if(LL_GPIO_IsInputPinSet(SW2_1_GPIO_Port, SW2_1_Pin))	{ switches |= sw21bitMSK;}
-	else{ switches &= ~sw21bitMSK;}
+	if(LL_GPIO_IsInputPinSet(SW_XE_GPIO_Port, SW_XE_Pin))	{ switches |= SW_X_E;}
+	else{ switches &= ~SW_X_E;}
 
-	if(LL_GPIO_IsInputPinSet(SW1_3_GPIO_Port, SW1_3_Pin))	{ switches |= sw13bitMSK;}
-	else{ switches &= ~sw13bitMSK;}
+	if(LL_GPIO_IsInputPinSet(SW_YH_GPIO_Port, SW_YH_Pin))	{ switches |= SW_Y_H;}
+	else{ switches &= ~SW_Y_H;}
 
-	if(LL_GPIO_IsInputPinSet(SW2_3_GPIO_Port, SW2_3_Pin))	{ switches |= sw23bitMSK;}
-	else{ switches &= ~sw23bitMSK;}
+	if(LL_GPIO_IsInputPinSet(SW_YE_GPIO_Port, SW_YE_Pin))	{ switches |= SW_Y_E;}
+	else{ switches &= ~SW_Y_E;}
 
-	if(LL_GPIO_IsInputPinSet(SW1_4_GPIO_Port, SW1_4_Pin))	{ switches &= ~sw14bitMSK;}
-	else{ switches |= sw14bitMSK;}
+	if(LL_GPIO_IsInputPinSet(SW_ZH_GPIO_Port, SW_ZH_Pin))	{ switches &= ~SW_Z_H;}
+	else{ switches |= SW_Z_H;}
 
-	if(LL_GPIO_IsInputPinSet(SW2_4_GPIO_Port, SW2_4_Pin))	{ switches &= ~sw24bitMSK;}
-	else{ switches |= sw24bitMSK;}
+	if(LL_GPIO_IsInputPinSet(SW_ZE_GPIO_Port, SW_ZE_Pin))	{ switches &= ~SW_Z_E;}
+	else{ switches |= SW_Z_E;}
 }
 
 void gotozero(CP* currentpos)
 {
 	uint32_t gx=0, gy=0;
 
-	while( (switches&sw14bitMSK) != sw14bitMSK)
+	while( (switches&SW_Z_H) != SW_Z_H)
 	{
 		stepz(1, BACKWARD, currentpos);
 	}
 	currentpos->current_pos_z = 0;
 
-	while( (switches&(sw11bitMSK|sw13bitMSK)) != (sw11bitMSK|sw13bitMSK) )
+	while( (switches&(SW_X_H|SW_Y_H)) != (SW_X_H|SW_Y_H) )
 	{
-		if((switches&sw11bitMSK)==sw11bitMSK)	{ gx = 0;}	else{ gx = 1;}
-		if((switches&sw13bitMSK)==sw13bitMSK)	{ gy = 0;}	else{ gy = 1;}
+		if((switches&SW_X_H)==SW_X_H)	{ gx = 0;}	else{ gx = 1;}
+		if((switches&SW_Y_H)==SW_Y_H)	{ gy = 0;}	else{ gy = 1;}
 		stepxyz25D(gx, BACKWARD, gy, BACKWARD, 0, BACKWARD, currentpos);
 	}
 	stepxyz25D(100, FORWARD, 100, FORWARD, 100, FORWARD, currentpos);//step out of the limit sw proximity
@@ -151,17 +151,17 @@ void stepz(uint32_t z, int8_t dirz, CP* currentpos)
 {
 	uint32_t z_steps_taken = 0;
 
-	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);}
+	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}
 	get_limit_sw_state();
 	usDelay(1);
 
-	while(  (z_steps_taken<z) && IfMovingAwayFromSwitch(dirz, sw14bitMSK, sw24bitMSK) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
+	while(  (z_steps_taken<z) && IfMovingAwayFromSwitch(dirz, SW_Z_H, SW_Z_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
 	{
-		LL_GPIO_SetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);//motor steps on rising edge
+		LL_GPIO_SetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);//motor steps on rising edge
 		z_steps_taken++;
 		//stepdelay(currentpos);
 		usDelay(800);
-		LL_GPIO_ResetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
+		LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
 		//stepdelay(currentpos);
 		usDelay(800);
 	}
@@ -171,9 +171,9 @@ void stepz(uint32_t z, int8_t dirz, CP* currentpos)
 
 void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int8_t dirz, CP* currentpos)
 {
-	axle aX={dirx, sw11bitMSK, sw21bitMSK, x, 0, STCK_1_GPIO_Port, STCK_1_Pin};
-	axle aY={diry, sw13bitMSK, sw23bitMSK, y, 0, STCK_3_GPIO_Port, STCK_3_Pin};
-	axle aZ={dirz, sw14bitMSK, sw24bitMSK, z, 0, STCK_4_GPIO_Port, STCK_4_Pin};
+	axle aX={dirx, SW_X_H, SW_X_E, x, 0, STEP_X_GPIO_Port, STEP_X_Pin};
+	axle aY={diry, SW_Y_H, SW_Y_E, y, 0, STEP_Y_GPIO_Port, STEP_Y_Pin};
+	axle aZ={dirz, SW_Z_H, SW_Z_E, z, 0, STEP_Z_GPIO_Port, STEP_Z_Pin};
 
 	float slope10 = 0;
 	float slope21 = 0;
@@ -191,9 +191,9 @@ void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int
 		if(axt[1]->steps > axt[2]->steps)	{tmp=axt[1]; axt[1]=axt[2]; axt[2]=tmp; swap=1;} else{}
 	}
 
-	if(dirx==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);}
-	if(diry==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);}
-	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);}
+	if(dirx==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}
+	if(diry==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);}
+	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}
 	get_limit_sw_state();
 
 	if((axt[0]->steps == 0) || (axt[1]->steps == 0))	{slope10 = 0;}	else{ slope10 = fabsf((float)axt[1]->steps / (float)axt[0]->steps);}
@@ -226,9 +226,9 @@ void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int
 			}
 		}
 		stepdelay(currentpos);
-		LL_GPIO_ResetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-		LL_GPIO_ResetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
-		LL_GPIO_ResetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
+		LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+		LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
+		LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
 		stepdelay(currentpos);
 	}
 
@@ -244,8 +244,8 @@ void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, in
 	uint32_t x_steps_taken = 0;
 	uint32_t y_steps_taken = 0;
 
-	if(dirx==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);}
-	if(diry==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);}
+	if(dirx==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}
+	if(diry==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);}
 	get_limit_sw_state();
 	stepz(z, dirz, currentpos);
 
@@ -254,24 +254,24 @@ void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, in
 		if(y==0)	{ slope=0;}
 		else{ slope = fabs((float)x/y);}
 
-		while(  (x_steps_taken<x) && IfMovingAwayFromSwitch(dirx, sw11bitMSK, sw21bitMSK) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
+		while(  (x_steps_taken<x) && IfMovingAwayFromSwitch(dirx, SW_X_H, SW_X_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
 		{
-			LL_GPIO_SetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);//motor steps on rising edge
+			LL_GPIO_SetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);//motor steps on rising edge
 			x_steps_taken++;
 
 			if(slope != 0)
 			{
 				next_slope = ((float)x_steps_taken/(y_steps_taken+1));
 
-				if( (next_slope>=slope ) && (y_steps_taken<y) && IfMovingAwayFromSwitch(diry, sw13bitMSK, sw23bitMSK))
+				if( (next_slope>=slope ) && (y_steps_taken<y) && IfMovingAwayFromSwitch(diry, SW_Y_H, SW_Y_E))
 				{
-					LL_GPIO_SetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);//motor steps on rising edge
+					LL_GPIO_SetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);//motor steps on rising edge
 					y_steps_taken++;
 				}
 			}
 			stepdelay(currentpos);
-			LL_GPIO_ResetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-			LL_GPIO_ResetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
+			LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+			LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
 			stepdelay(currentpos);
 		}
 	}
@@ -280,24 +280,24 @@ void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, in
 		if(x==0)	{ slope=0;}
 		else{ slope = fabs((float)y/x);}
 
-		while( (y_steps_taken<y) && IfMovingAwayFromSwitch(diry, sw13bitMSK, sw23bitMSK) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
+		while( (y_steps_taken<y) && IfMovingAwayFromSwitch(diry, SW_Y_H, SW_Y_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
 		{
-			LL_GPIO_SetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);//motor steps on rising edge
+			LL_GPIO_SetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);//motor steps on rising edge
 			y_steps_taken++;
 
 			if(slope != 0)
 			{
 				next_slope = ((float)y_steps_taken/(x_steps_taken+1));
 
-				if( (next_slope>=slope ) && (x_steps_taken<x) && IfMovingAwayFromSwitch(dirx, sw11bitMSK, sw21bitMSK))
+				if( (next_slope>=slope ) && (x_steps_taken<x) && IfMovingAwayFromSwitch(dirx, SW_X_H, SW_X_E))
 				{
-					LL_GPIO_SetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);//motor steps on rising edge
+					LL_GPIO_SetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);//motor steps on rising edge
 					x_steps_taken++;
 				}
 			}
 			stepdelay(currentpos);
-			LL_GPIO_ResetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-			LL_GPIO_ResetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
+			LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+			LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
 			stepdelay(currentpos);
 		}
 	}
@@ -310,7 +310,7 @@ void stepdelay(CP* currentpos)
 {
 	switch(currentpos->curr_state & (FeedMove|RapidMove))
 	{
-		case RapidMove:		usDelay(800);
+		case RapidMove:		usDelay(650);
 							break;
 
 		case FeedMove:		switch(currentpos->movespeed)
@@ -366,155 +366,90 @@ void set_servo(int32_t zval, CP* currentpos)
 }
 */
 
-void STSPIN220_power_down(void)
+void A4988_power_down(void)
 {
-	LL_GPIO_ResetOutputPin(STBY_RESET_ALL_GPIO_Port, STBY_RESET_ALL_Pin);
-	LL_GPIO_ResetOutputPin(EN_FAULT_1_GPIO_Port, EN_FAULT_1_Pin);
-	LL_GPIO_ResetOutputPin(EN_FAULT_3_GPIO_Port, EN_FAULT_3_Pin);
-	LL_GPIO_ResetOutputPin(EN_FAULT_4_GPIO_Port, EN_FAULT_4_Pin);
+	LL_GPIO_ResetOutputPin(_SLEEP_GPIO_Port, _SLEEP_Pin);//enable internal circuitry
+	LL_GPIO_ResetOutputPin(_RST_GPIO_Port, _RST_Pin);//set translator to home state and switch off output FETs
+	LL_GPIO_SetOutputPin(_EN_GPIO_Port, _EN_Pin);//switch off output FETs
 }
 
-void STSPIN220_init(CP *currentpos, uint16_t stepsizeX, uint16_t stepsizeY, uint16_t stepsizeZ)
+void A4988_init(CP *currentpos, uint16_t stepsizeX, uint16_t stepsizeY, uint16_t stepsizeZ)
 {
+	LL_GPIO_SetOutputPin(_SLEEP_GPIO_Port, _SLEEP_Pin);//enable internal circuitry
+	LL_mDelay(2);
+	LL_GPIO_ResetOutputPin(_RST_GPIO_Port, _RST_Pin);//set translator to home state and switch off output FETs
+	LL_GPIO_SetOutputPin(_EN_GPIO_Port, _EN_Pin);//switch off output FETs
 
-	LL_GPIO_ResetOutputPin(STBY_RESET_ALL_GPIO_Port, STBY_RESET_ALL_Pin);
-	LL_GPIO_ResetOutputPin(EN_FAULT_1_GPIO_Port, EN_FAULT_1_Pin);
-	LL_GPIO_ResetOutputPin(EN_FAULT_3_GPIO_Port, EN_FAULT_3_Pin);
-	LL_GPIO_ResetOutputPin(EN_FAULT_4_GPIO_Port, EN_FAULT_4_Pin);
-
-	currentpos->curr_state &= ~(stepsizeX1_0 | stepsizeX1_2 | stepsizeX1_4 | stepsizeX1_8 | stepsizeY1_0 | stepsizeY1_2 | stepsizeY1_4 | stepsizeY1_8 | stepsizeZ1_0 | stepsizeZ1_2 | stepsizeZ1_4 | stepsizeZ1_8);
+	currentpos->curr_state &= ~(stepsize_1_0 | stepsize_1_2 | stepsize_1_4 | stepsize_1_8 | stepsize_1_16);
 
 	switch(stepsizeX)
 	{
-		case stepsizeX1_0:	//X axis full step
-							LL_GPIO_ResetOutputPin(MODE1_1_GPIO_Port, MODE1_1_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_1_GPIO_Port, MODE2_1_Pin);
-							LL_GPIO_ResetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-							LL_GPIO_ResetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);
+		case stepsize_1_0:	LL_GPIO_ResetOutputPin(MS1_GPIO_Port, MS1_Pin);
+							LL_GPIO_ResetOutputPin(MS2_GPIO_Port, MS2_Pin);
+							LL_GPIO_ResetOutputPin(MS3_GPIO_Port, MS3_Pin);
 
-							currentpos->curr_state |= stepsizeX1_0;
+							currentpos->curr_state |= stepsize_1_0;
 							break;
 
-		case stepsizeX1_2:	//X axis full step
-							LL_GPIO_SetOutputPin(MODE1_1_GPIO_Port, MODE1_1_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_1_GPIO_Port, MODE2_1_Pin);
-							LL_GPIO_SetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-							LL_GPIO_ResetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);
+		case stepsize_1_2:	LL_GPIO_SetOutputPin(MS1_GPIO_Port, MS1_Pin);
+							LL_GPIO_ResetOutputPin(MS2_GPIO_Port, MS2_Pin);
+							LL_GPIO_ResetOutputPin(MS3_GPIO_Port, MS3_Pin);
 
-							currentpos->curr_state |= stepsizeX1_2;
+							currentpos->curr_state |= stepsize_1_2;
 							break;
 
-		case stepsizeX1_4:	//X axis 1/4 step
-							LL_GPIO_ResetOutputPin(MODE1_1_GPIO_Port, MODE1_1_Pin);
-							LL_GPIO_SetOutputPin(MODE2_1_GPIO_Port, MODE2_1_Pin);
-							LL_GPIO_ResetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-							LL_GPIO_SetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);
+		case stepsize_1_4:	LL_GPIO_ResetOutputPin(MS1_GPIO_Port, MS1_Pin);
+							LL_GPIO_SetOutputPin(MS2_GPIO_Port, MS2_Pin);
+							LL_GPIO_ResetOutputPin(MS3_GPIO_Port, MS3_Pin);
 
-							currentpos->curr_state |= stepsizeX1_4;
+							currentpos->curr_state |= stepsize_1_4;
 							break;
 
-		case stepsizeX1_8:	//X axis full step
-							LL_GPIO_SetOutputPin(MODE1_1_GPIO_Port, MODE1_1_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_1_GPIO_Port, MODE2_1_Pin);
-							LL_GPIO_SetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-							LL_GPIO_SetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);
+		case stepsize_1_8:	LL_GPIO_SetOutputPin(MS1_GPIO_Port, MS1_Pin);
+							LL_GPIO_SetOutputPin(MS2_GPIO_Port, MS2_Pin);
+							LL_GPIO_ResetOutputPin(MS3_GPIO_Port, MS3_Pin);
 
-							currentpos->curr_state |= stepsizeX1_8;
+							currentpos->curr_state |= stepsize_1_8;
 							break;
 
-		default:	break;
-	}
+		case stepsize_1_16:	LL_GPIO_SetOutputPin(MS1_GPIO_Port, MS1_Pin);
+							LL_GPIO_SetOutputPin(MS2_GPIO_Port, MS2_Pin);
+							LL_GPIO_SetOutputPin(MS3_GPIO_Port, MS3_Pin);
 
-
-
-	switch(stepsizeY)
-	{
-		case stepsizeY1_0:	LL_GPIO_ResetOutputPin(MODE1_3_GPIO_Port, MODE1_3_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_3_GPIO_Port, MODE2_3_Pin);
-							LL_GPIO_ResetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
-							LL_GPIO_ResetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);
-
-							currentpos->curr_state |= stepsizeY1_0;
-							break;
-
-		case stepsizeY1_2:	LL_GPIO_SetOutputPin(MODE1_3_GPIO_Port, MODE1_3_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_3_GPIO_Port, MODE2_3_Pin);
-							LL_GPIO_SetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
-							LL_GPIO_ResetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);
-
-							currentpos->curr_state |= stepsizeY1_2;
-							break;
-
-		case stepsizeY1_4:	LL_GPIO_ResetOutputPin(MODE1_3_GPIO_Port, MODE1_3_Pin);
-							LL_GPIO_SetOutputPin(MODE2_3_GPIO_Port, MODE2_3_Pin);
-							LL_GPIO_ResetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
-							LL_GPIO_SetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);
-
-							currentpos->curr_state |= stepsizeY1_4;
-							break;
-
-		case stepsizeY1_8:	LL_GPIO_SetOutputPin(MODE1_3_GPIO_Port, MODE1_3_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_3_GPIO_Port, MODE2_3_Pin);
-							LL_GPIO_SetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
-							LL_GPIO_SetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);
-
-							currentpos->curr_state |= stepsizeY1_8;
+							currentpos->curr_state |= stepsize_1_0;
 							break;
 
 		default:	break;
 	}
 
-	switch(stepsizeZ)
-	{
-		case stepsizeZ1_0:	LL_GPIO_ResetOutputPin(MODE1_4_GPIO_Port, MODE1_4_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_4_GPIO_Port, MODE2_4_Pin);
-							LL_GPIO_ResetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
-							LL_GPIO_ResetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);
+	LL_mDelay(1);
+	LL_GPIO_SetOutputPin(_RST_GPIO_Port, _RST_Pin);//enable output FETs
+	LL_GPIO_ResetOutputPin(_EN_GPIO_Port, _EN_Pin);//enable output FETs
 
-							currentpos->curr_state |= stepsizeZ1_0;
-							break;
+	//step one forward and one back, the stepsize select only applies after the next step rising edge
+	LL_GPIO_SetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);
+	LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+	LL_GPIO_SetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+	LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+	LL_GPIO_ResetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);
+	LL_GPIO_SetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
+	LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
 
-		case stepsizeZ1_2:	LL_GPIO_SetOutputPin(MODE1_4_GPIO_Port, MODE1_4_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_4_GPIO_Port, MODE2_4_Pin);
-							LL_GPIO_SetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
-							LL_GPIO_ResetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);
+	LL_GPIO_SetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);
+	LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
+	LL_GPIO_SetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
+	LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
+	LL_GPIO_ResetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);
+	LL_GPIO_SetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
+	LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
 
-							currentpos->curr_state |= stepsizeZ1_2;
-							break;
-
-		case stepsizeZ1_4:	LL_GPIO_ResetOutputPin(MODE1_4_GPIO_Port, MODE1_4_Pin);
-							LL_GPIO_SetOutputPin(MODE2_4_GPIO_Port, MODE2_4_Pin);
-							LL_GPIO_ResetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
-							LL_GPIO_SetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);
-
-							currentpos->curr_state |= stepsizeZ1_4;
-							break;
-
-		case stepsizeZ1_8:	LL_GPIO_SetOutputPin(MODE1_4_GPIO_Port, MODE1_4_Pin);
-							LL_GPIO_ResetOutputPin(MODE2_4_GPIO_Port, MODE2_4_Pin);
-							LL_GPIO_SetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
-							LL_GPIO_SetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);
-
-							currentpos->curr_state |= stepsizeZ1_8;
-							break;
-
-		default:	break;
-	}
-
-
-	LL_mDelay(1);//10
-	LL_GPIO_SetOutputPin(STBY_RESET_ALL_GPIO_Port, STBY_RESET_ALL_Pin);//get out of low consumption mode
-	LL_mDelay(1);//10
-	LL_GPIO_SetOutputPin(EN_FAULT_1_GPIO_Port, EN_FAULT_1_Pin);//EN drivers
-	LL_GPIO_SetOutputPin(EN_FAULT_3_GPIO_Port, EN_FAULT_3_Pin);//
-	LL_GPIO_SetOutputPin(EN_FAULT_4_GPIO_Port, EN_FAULT_4_Pin);//
-
-	LL_GPIO_ResetOutputPin(STCK_1_GPIO_Port, STCK_1_Pin);
-	LL_GPIO_ResetOutputPin(DIR_1_GPIO_Port, DIR_1_Pin);
-	LL_GPIO_ResetOutputPin(STCK_3_GPIO_Port, STCK_3_Pin);
-	LL_GPIO_ResetOutputPin(DIR_3_GPIO_Port, DIR_3_Pin);
-	LL_GPIO_ResetOutputPin(STCK_4_GPIO_Port, STCK_4_Pin);
-	LL_GPIO_ResetOutputPin(DIR_4_GPIO_Port, DIR_4_Pin);
+	LL_GPIO_SetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);
+	LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
+	LL_GPIO_SetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
+	LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
+	LL_GPIO_ResetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);
+	LL_GPIO_SetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
+	LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
 }
 
 

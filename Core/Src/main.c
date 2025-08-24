@@ -60,7 +60,6 @@ uint8_t rxflagbyte = 0;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
-static void MX_TIM2_Init(void);
 static void MX_SPI2_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -114,12 +113,11 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
   MX_TIM4_Init();
-  MX_TIM2_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
   stepper_pos.movespeed |= toolspeed_7;
-  STSPIN220_init(&stepper_pos, stepsizeX1_4, stepsizeY1_4, stepsizeZ1_4);
+  A4988_init(&stepper_pos, stepsize_1_4, stepsize_1_4, stepsize_1_4);
 
   __enable_irq();
 
@@ -193,11 +191,16 @@ int main(void)
 		}
 	}*/
 
+	LL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+
 	switch(rxbuffer[0])
 	{
+		//TODO make a cmd which only goes to zero
+
 		//initialize
 		case 'I':	//the command only can be the "IN"
 		case 'i':	stepper_pos.movespeed |= toolspeed_7;
+					num_of_cmd_line = 1;
 					gotozero(&stepper_pos);
 					msDelay(100);
 					break;
@@ -357,7 +360,7 @@ int main(void)
   }
 
   gotozero(&stepper_pos);
-  STSPIN220_power_down();
+  A4988_power_down();
 
   while (1)
   {
@@ -455,64 +458,6 @@ static void MX_SPI2_Init(void)
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-  LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
-
-  /* TIM2 interrupt Init */
-  NVIC_SetPriority(TIM2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
-  NVIC_EnableIRQ(TIM2_IRQn);
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  TIM_InitStruct.Prescaler = 22;
-  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = 65454;
-  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  LL_TIM_Init(TIM2, &TIM_InitStruct);
-  LL_TIM_DisableARRPreload(TIM2);
-  LL_TIM_OC_EnablePreload(TIM2, LL_TIM_CHANNEL_CH2);
-  TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
-  TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
-  TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
-  TIM_OC_InitStruct.CompareValue = 6545;
-  TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
-  LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH2, &TIM_OC_InitStruct);
-  LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH2);
-  LL_TIM_SetTriggerOutput(TIM2, LL_TIM_TRGO_RESET);
-  LL_TIM_DisableMasterSlaveMode(TIM2);
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA);
-  /**TIM2 GPIO Configuration
-  PA1   ------> TIM2_CH2
-  */
-  GPIO_InitStruct.Pin = SERVO_PWM_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  LL_GPIO_Init(SERVO_PWM_GPIO_Port, &GPIO_InitStruct);
-
-}
-
-/**
   * @brief TIM4 Initialization Function
   * @param None
   * @retval None
@@ -580,51 +525,35 @@ static void MX_GPIO_Init(void)
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOC, MODE1_1_Pin|MODE2_1_Pin|USB_REENUM_Pin);
+  LL_GPIO_ResetOutputPin(GPIOA, DIR_X_Pin|STEP_X_Pin|_SLEEP_Pin|_RST_Pin
+                          |MS3_Pin|MS2_Pin|MS1_Pin|LED1_Pin
+                          |LED2_Pin|USB_REENUM_Pin|LED3_Pin);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOA, STCK_1_Pin|STCK_3_Pin|STCK_4_Pin|DIR_1_Pin
-                          |DIR_3_Pin|DIR_4_Pin|MODE1_4_Pin|MODE2_4_Pin
-                          |EN_FAULT_4_Pin|MODE2_3_Pin);
+  LL_GPIO_ResetOutputPin(GPIOB, _EN_Pin|DIR_Y_Pin|STEP_Y_Pin|DIR_Z_Pin
+                          |STEP_Z_Pin|SPI2_CS_Pin|LED4_Pin);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOB, EN_FAULT_1_Pin|MODE1_3_Pin|EN_FAULT_3_Pin|SPI2_CS_Pin
-                          |STBY_RESET_ALL_Pin);
+  GPIO_InitStruct.Pin = SPI2_EXT_CTR_BSY_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
+  LL_GPIO_Init(SPI2_EXT_CTR_BSY_GPIO_Port, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = MODE1_1_Pin|MODE2_1_Pin|USB_REENUM_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = STCK_1_Pin|STCK_3_Pin|STCK_4_Pin|DIR_1_Pin
-                          |DIR_3_Pin|DIR_4_Pin|MODE1_4_Pin|MODE2_4_Pin
-                          |EN_FAULT_4_Pin|MODE2_3_Pin;
+  GPIO_InitStruct.Pin = DIR_X_Pin|STEP_X_Pin|_SLEEP_Pin|_RST_Pin
+                          |MS3_Pin|MS2_Pin|MS1_Pin|LED1_Pin
+                          |LED2_Pin|USB_REENUM_Pin|LED3_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = EN_FAULT_1_Pin|MODE1_3_Pin|EN_FAULT_3_Pin|SPI2_CS_Pin
-                          |STBY_RESET_ALL_Pin;
+  GPIO_InitStruct.Pin = _EN_Pin|DIR_Y_Pin|STEP_Y_Pin|DIR_Z_Pin
+                          |STEP_Z_Pin|SPI2_CS_Pin|LED4_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = EXTENSION_BRD_BSY_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
-  LL_GPIO_Init(EXTENSION_BRD_BSY_GPIO_Port, &GPIO_InitStruct);
-
-  /**/
-  LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE10);
-
-  /**/
-  LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE11);
 
   /**/
   LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE4);
@@ -633,24 +562,16 @@ static void MX_GPIO_Init(void)
   LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE5);
 
   /**/
+  LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE6);
+
+  /**/
+  LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE7);
+
+  /**/
   LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE8);
 
   /**/
   LL_GPIO_AF_SetEXTISource(LL_GPIO_AF_EXTI_PORTB, LL_GPIO_AF_EXTI_LINE9);
-
-  /**/
-  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_10;
-  EXTI_InitStruct.LineCommand = ENABLE;
-  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING_FALLING;
-  LL_EXTI_Init(&EXTI_InitStruct);
-
-  /**/
-  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_11;
-  EXTI_InitStruct.LineCommand = ENABLE;
-  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING_FALLING;
-  LL_EXTI_Init(&EXTI_InitStruct);
 
   /**/
   EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_4;
@@ -663,7 +584,21 @@ static void MX_GPIO_Init(void)
   EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_5;
   EXTI_InitStruct.LineCommand = ENABLE;
   EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING;
+  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING_FALLING;
+  LL_EXTI_Init(&EXTI_InitStruct);
+
+  /**/
+  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_6;
+  EXTI_InitStruct.LineCommand = ENABLE;
+  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING_FALLING;
+  LL_EXTI_Init(&EXTI_InitStruct);
+
+  /**/
+  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_7;
+  EXTI_InitStruct.LineCommand = ENABLE;
+  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING_FALLING;
   LL_EXTI_Init(&EXTI_InitStruct);
 
   /**/
@@ -681,48 +616,46 @@ static void MX_GPIO_Init(void)
   LL_EXTI_Init(&EXTI_InitStruct);
 
   /**/
-  LL_GPIO_SetPinPull(SW1_4_GPIO_Port, SW1_4_Pin, LL_GPIO_PULL_UP);
+  LL_GPIO_SetPinPull(SW_ZH_GPIO_Port, SW_ZH_Pin, LL_GPIO_PULL_UP);
 
   /**/
-  LL_GPIO_SetPinPull(SW2_4_GPIO_Port, SW2_4_Pin, LL_GPIO_PULL_UP);
+  LL_GPIO_SetPinPull(SW_ZE_GPIO_Port, SW_ZE_Pin, LL_GPIO_PULL_UP);
 
   /**/
-  LL_GPIO_SetPinPull(SW1_1_GPIO_Port, SW1_1_Pin, LL_GPIO_PULL_UP);
+  LL_GPIO_SetPinPull(SW_YH_GPIO_Port, SW_YH_Pin, LL_GPIO_PULL_UP);
 
   /**/
-  LL_GPIO_SetPinPull(SW2_1_GPIO_Port, SW2_1_Pin, LL_GPIO_PULL_UP);
+  LL_GPIO_SetPinPull(SW_YE_GPIO_Port, SW_YE_Pin, LL_GPIO_PULL_UP);
 
   /**/
-  LL_GPIO_SetPinPull(SW1_3_GPIO_Port, SW1_3_Pin, LL_GPIO_PULL_UP);
+  LL_GPIO_SetPinPull(SW_XH_GPIO_Port, SW_XH_Pin, LL_GPIO_PULL_UP);
 
   /**/
-  LL_GPIO_SetPinPull(SW2_3_GPIO_Port, SW2_3_Pin, LL_GPIO_PULL_UP);
+  LL_GPIO_SetPinPull(SW_XE_GPIO_Port, SW_XE_Pin, LL_GPIO_PULL_UP);
 
   /**/
-  LL_GPIO_SetPinMode(SW1_4_GPIO_Port, SW1_4_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinMode(SW_ZH_GPIO_Port, SW_ZH_Pin, LL_GPIO_MODE_INPUT);
 
   /**/
-  LL_GPIO_SetPinMode(SW2_4_GPIO_Port, SW2_4_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinMode(SW_ZE_GPIO_Port, SW_ZE_Pin, LL_GPIO_MODE_INPUT);
 
   /**/
-  LL_GPIO_SetPinMode(SW1_1_GPIO_Port, SW1_1_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinMode(SW_YH_GPIO_Port, SW_YH_Pin, LL_GPIO_MODE_INPUT);
 
   /**/
-  LL_GPIO_SetPinMode(SW2_1_GPIO_Port, SW2_1_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinMode(SW_YE_GPIO_Port, SW_YE_Pin, LL_GPIO_MODE_INPUT);
 
   /**/
-  LL_GPIO_SetPinMode(SW1_3_GPIO_Port, SW1_3_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinMode(SW_XH_GPIO_Port, SW_XH_Pin, LL_GPIO_MODE_INPUT);
 
   /**/
-  LL_GPIO_SetPinMode(SW2_3_GPIO_Port, SW2_3_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinMode(SW_XE_GPIO_Port, SW_XE_Pin, LL_GPIO_MODE_INPUT);
 
   /* EXTI interrupt init*/
   NVIC_SetPriority(EXTI4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(EXTI4_IRQn);
   NVIC_SetPriority(EXTI9_5_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(EXTI9_5_IRQn);
-  NVIC_SetPriority(EXTI15_10_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
-  NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -733,7 +666,7 @@ static void MX_GPIO_Init(void)
 
 void ext_brd_transmit_string(uint8_t printCmd, uint8_t* strbuff, uint8_t len)
 {
-	if((LL_GPIO_IsInputPinSet(EXTENSION_BRD_BSY_GPIO_Port, EXTENSION_BRD_BSY_Pin) == 0) || (printCmd == PrintFilenameTXT_cmd))//only if extension board is not busy, not to slow down cnc movements
+	if((LL_GPIO_IsInputPinSet(SPI2_EXT_CTR_BSY_GPIO_Port, SPI2_EXT_CTR_BSY_Pin) == 0) || (printCmd == PrintFilenameTXT_cmd))//only if extension board is not busy, not to slow down cnc movements
 	{
 		uint8_t* txframe = calloc(len+2,1);//+2 is for the command byte which is byte0, and len byte which is byte1
 		uint8_t* dummyrx = calloc(len+2,1);
@@ -742,7 +675,7 @@ void ext_brd_transmit_string(uint8_t printCmd, uint8_t* strbuff, uint8_t len)
 		memcpy(&txframe[2], strbuff, len);
 
 		LL_GPIO_SetOutputPin(SPI2_CS_GPIO_Port, SPI2_CS_Pin);
-		while(LL_GPIO_IsInputPinSet(EXTENSION_BRD_BSY_GPIO_Port, EXTENSION_BRD_BSY_Pin) == 0)	{ __NOP();}
+		while(LL_GPIO_IsInputPinSet(SPI2_EXT_CTR_BSY_GPIO_Port, SPI2_EXT_CTR_BSY_Pin) == 0)	{ __NOP();}
 		HAL_SPI_TransmitReceive(&hspi2, txframe, dummyrx, len+2, 1000);
 		LL_GPIO_ResetOutputPin(SPI2_CS_GPIO_Port, SPI2_CS_Pin);
 
@@ -1022,7 +955,7 @@ void Error_Handler(void)
   /* User can add his own implementation to report the HAL error return state */
 
   gotozero(&stepper_pos);
-  STSPIN220_power_down();
+  A4988_power_down();
 
   __disable_irq();
 

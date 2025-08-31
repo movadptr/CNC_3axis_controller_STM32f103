@@ -116,23 +116,23 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
-  stepper_pos.toolspeed = 20;
   A4988_init(&stepper_pos, stepsize_1_4, stepsize_1_4, stepsize_1_4);
 
   __enable_irq();
 
   LL_mDelay(500);
 
-
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  stepper_pos.toolspeed = 20;// mm/s
+  stepper_pos.curr_state &= ~(RapidMove | RelativeStep_MSK);
+  stepper_pos.curr_state |= (FeedMove | AbsoluteStep_MSK);
+  num_of_cmd_line = 1;
   get_limit_sw_state();
-
-  gotozero(&stepper_pos);
+  gotohome(&stepper_pos);
 
 #ifdef DEBUG
 	/*USB->CNTR |= USB_CNTR_PDWN;
@@ -161,7 +161,6 @@ int main(void)
   uint8_t cmddone[1] = {CMD_DONE_CHAR};
   rxflagbyte = 0;
   rxbufend = 0;
-
 
   while(1)
   {
@@ -198,12 +197,45 @@ int main(void)
 		//TODO make a cmd which only goes to zero
 
 		//initialize
-		case 'I':	//the command only can be the "IN"
-		case 'i':	stepper_pos.toolspeed = 20;// mm/s
-					num_of_cmd_line = 1;
-					gotozero(&stepper_pos);
-					msDelay(100);
+		//will set the zero pos using the limit switches, for power up and resetting zero if axis slipped
+		case 'i':
+		case 'I':	if( (rxbuffer[1]=='n') || (rxbuffer[1]=='N') )
+					{
+						stepper_pos.toolspeed = 20;// mm/s
+						stepper_pos.curr_state &= ~(RapidMove | RelativeStep_MSK);
+						stepper_pos.curr_state |= (FeedMove | AbsoluteStep_MSK);
+						num_of_cmd_line = 1;
+						gotohome(&stepper_pos);
+						msDelay(100);
+					}
 					break;
+
+		//home position
+		case 'h':
+		case 'H':	if( (rxbuffer[1]=='p') || (rxbuffer[1]=='P') )
+					{
+						stepper_pos.curr_state &= ~RelativeStep_MSK;
+						stepper_pos.curr_state &= ~FeedMove;
+						stepper_pos.curr_state |= AbsoluteStep_MSK;
+						stepper_pos.curr_state |= RapidMove;
+						HPGL_PA(stepper_pos.current_pos_x, stepper_pos.current_pos_y, ZaxisLen, &stepper_pos);//lift up tool
+						HPGL_PA(0, 0, ZaxisLen, &stepper_pos);
+					}
+					break;
+
+		//end position
+		case 'e':
+		case 'E':	if( (rxbuffer[1]=='p') || (rxbuffer[1]=='P') )
+					{
+						stepper_pos.curr_state &= ~RelativeStep_MSK;
+						stepper_pos.curr_state &= ~FeedMove;
+						stepper_pos.curr_state |= AbsoluteStep_MSK;
+						stepper_pos.curr_state |= RapidMove;
+						HPGL_PA(stepper_pos.current_pos_x, stepper_pos.current_pos_y, ZaxisLen, &stepper_pos);//lift up tool
+						HPGL_PA(XaxisLen, YaxisLen, ZaxisLen, &stepper_pos);
+					}
+					break;
+
 		//set move type and move
 		case 'P':
 		case 'p':	switch(rxbuffer[1])
@@ -227,9 +259,8 @@ int main(void)
 						case 'd':	stepper_pos.curr_state &= ~RapidMove;
 									stepper_pos.curr_state |= FeedMove;
 									break;
-
 					}
-					if(rxbufend>3)//ha a command tartalmaz értékeket is akkor legalább 8 lesz a hossza pontosvesszővel együtt: PD0,0,0;
+					if(rxbufend>6)//ha a command tartalmaz értékeket is akkor legalább 8 lesz a hossza pontosvesszővel együtt: PD0,0,0;
 					{
 						eval_and_execute_plot_cmd(rxbuffer, rxbufend, &stepper_pos);
 					}
@@ -277,7 +308,6 @@ int main(void)
 						len=strlen(numstr);
 						CDC_Transmit_FS((uint8_t*)numstr, len);
 						msDelay(10);
-
 					}
 					break;
 
@@ -289,6 +319,12 @@ int main(void)
 	{
 		case 'i':
 		case 'I':
+
+		case 'h':
+		case 'H':
+
+		case 'e':
+		case 'E':
 
 		case 'P':
 		case 'p':
@@ -307,14 +343,11 @@ int main(void)
 					sendbuff[RXBUFFSIZE-1]=0;//a lezáró elemet lecseréljük lezáró nullára hogy a string biztos standard legyen attól függetlenül hogy az strlcat ezt elvileg megcsinálja
 					ext_brd_transmit_string(PrintCNCcmdAndLineNum_cmd, (uint8_t*)sendbuff, strlen(sendbuff));
 					num_of_cmd_line++;
-
-					/*
-					rxbuffer[rxbufend]=0;//az utolsó elemet lecseréljük lezáró nullára hogy a string biztos standard legyen
-					ext_brd_transmit_string(PrintCNCcmd_cmd, rxbuffer, rxbufend+1);
-					rxbuffer[rxbufend]=CMD_DONE_CHAR;//visszaállítás*/
 					break;
 		case 't':
 		case 'T':
+
+		default:
 					break;
 	}
 
@@ -326,7 +359,8 @@ int main(void)
 	}
   }
 
-  gotozero(&stepper_pos);
+  //bab
+  gotohome(&stepper_pos);
   A4988_power_down();
 
   while (1)
@@ -853,7 +887,7 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
 
-  gotozero(&stepper_pos);
+  gotohome(&stepper_pos);
   A4988_power_down();
 
   __disable_irq();

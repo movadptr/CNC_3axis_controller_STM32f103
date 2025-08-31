@@ -95,7 +95,7 @@ void A4988_power_down(void);
 void stepM(uint8_t M_axis);
 void stepp(uint8_t M_axis, int8_t dir, uint32_t steps);
 void rampup(uint8_t M_axis);
-void gotozero(CP* currentpos);
+void gotohome(CP* currentpos);
 void StepDelay(CP* currentpos);
 
 void stepz(uint32_t z, int8_t dirz, CP* currentpos);

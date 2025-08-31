@@ -116,25 +116,26 @@ void get_limit_sw_state(void)
 	else{ switches |= SW_Z_E;}
 }
 
-
-//TODO don't use and delete stepz() and stepxyz25D()
-void gotozero(CP* currentpos)
+void gotohome(CP* currentpos)
 {
 	uint32_t gx=0, gy=0;
 
-	while( (switches&SW_Z_H) != SW_Z_H)
-	{
-		stepz(1, BACKWARD, currentpos);
-	}
-	currentpos->current_pos_z = 0;
+	//first lift up the tool (z axis)
+	//will only move till it hits the limit switch
+	stepxyz3D(0, BACKWARD, 0, BACKWARD, ZaxisLen*2, BACKWARD, currentpos);
 
+	//then move x and y axis till both hit the limit switches
 	while( (switches&(SW_X_H|SW_Y_H)) != (SW_X_H|SW_Y_H) )
 	{
 		if((switches&SW_X_H)==SW_X_H)	{ gx = 0;}	else{ gx = 1;}
 		if((switches&SW_Y_H)==SW_Y_H)	{ gy = 0;}	else{ gy = 1;}
-		stepxyz25D(gx, BACKWARD, gy, BACKWARD, 0, BACKWARD, currentpos);
+		stepxyz3D(gx, BACKWARD, gy, BACKWARD, 0, BACKWARD, currentpos);
 	}
-	stepxyz25D(100, FORWARD, 100, FORWARD, 100, FORWARD, currentpos);//step out of the limit sw proximity
+
+	//step out of the limit sw proximity
+	stepxyz3D(100, FORWARD, 100, FORWARD, 100, FORWARD, currentpos);
+
+	//set home pos
 	currentpos->current_pos_x = 0;
 	currentpos->current_pos_y = 0;
 	currentpos->current_pos_z = ZaxisLen;
@@ -146,7 +147,7 @@ void gotozero(CP* currentpos)
 
 	uint8_t str2[] = {"> "};
 	ext_brd_transmit_string(PrintInfo_cmd, str2, sizeof(str2));
-	msDelay(100);
+	msDelay(300);
 }
 
 void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int8_t dirz, CP* currentpos)
@@ -230,111 +231,16 @@ void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int
 	currentpos->current_pos_z -= (aZ.stepsTaken * aZ.dir);
 }
 
-void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int8_t dirz, CP* currentpos)
-{
-	float slope = 0;
-	float next_slope = 0;
-	uint32_t x_steps_taken = 0;
-	uint32_t y_steps_taken = 0;
-
-	if(dirx==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_X_GPIO_Port, DIR_X_Pin);}
-	if(diry==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Y_GPIO_Port, DIR_Y_Pin);}
-	get_limit_sw_state();
-	stepz(z, dirz, currentpos);
-
-	if(x>y)
-	{
-		if(y==0)	{ slope=0;}
-		else{ slope = fabs((float)x/y);}
-
-		while(  (x_steps_taken<x) && IfMovingAwayFromSwitch(dirx, SW_X_H, SW_X_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
-		{
-			LL_GPIO_SetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);//motor steps on rising edge
-			x_steps_taken++;
-
-			if(slope != 0)
-			{
-				next_slope = ((float)x_steps_taken/(y_steps_taken+1));
-
-				if( (next_slope>=slope ) && (y_steps_taken<y) && IfMovingAwayFromSwitch(diry, SW_Y_H, SW_Y_E))
-				{
-					LL_GPIO_SetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);//motor steps on rising edge
-					y_steps_taken++;
-				}
-			}
-			//StepDelay(currentpos);
-			usDelay(800);
-			LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
-			LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
-			//StepDelay(currentpos);
-			usDelay(800);
-		}
-	}
-	else
-	{
-		if(x==0)	{ slope=0;}
-		else{ slope = fabs((float)y/x);}
-
-		while( (y_steps_taken<y) && IfMovingAwayFromSwitch(diry, SW_Y_H, SW_Y_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
-		{
-			LL_GPIO_SetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);//motor steps on rising edge
-			y_steps_taken++;
-
-			if(slope != 0)
-			{
-				next_slope = ((float)y_steps_taken/(x_steps_taken+1));
-
-				if( (next_slope>=slope ) && (x_steps_taken<x) && IfMovingAwayFromSwitch(dirx, SW_X_H, SW_X_E))
-				{
-					LL_GPIO_SetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);//motor steps on rising edge
-					x_steps_taken++;
-				}
-			}
-			//StepDelay(currentpos);
-			usDelay(800);
-			LL_GPIO_ResetOutputPin(STEP_X_GPIO_Port, STEP_X_Pin);
-			LL_GPIO_ResetOutputPin(STEP_Y_GPIO_Port, STEP_Y_Pin);
-			//StepDelay(currentpos);
-			usDelay(800);
-		}
-	}
-
-	currentpos->current_pos_x += (x_steps_taken*dirx);
-	currentpos->current_pos_y += (y_steps_taken*diry);
-}
-
-void stepz(uint32_t z, int8_t dirz, CP* currentpos)
-{
-	uint32_t z_steps_taken = 0;
-
-	if(dirz==FORWARD)	{ LL_GPIO_SetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}	else{ LL_GPIO_ResetOutputPin(DIR_Z_GPIO_Port, DIR_Z_Pin);}
-	get_limit_sw_state();
-	usDelay(1);
-
-	while(  (z_steps_taken<z) && IfMovingAwayFromSwitch(dirz, SW_Z_H, SW_Z_E) )//ha nem a bedőlt limit switch felé megy akkor csinálhat steppet
-	{
-		LL_GPIO_SetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);//motor steps on rising edge
-		z_steps_taken++;
-		//stepdelay(currentpos);
-		usDelay(800);
-		LL_GPIO_ResetOutputPin(STEP_Z_GPIO_Port, STEP_Z_Pin);
-		//stepdelay(currentpos);
-		usDelay(800);
-	}
-
-	currentpos->current_pos_z += (z_steps_taken*dirz);
-}
-
 void StepDelay(CP* currentpos)
 {
 	switch(currentpos->curr_state & (FeedMove|RapidMove))
 	{
-		case RapidMove:		usDelay(650);
+		case RapidMove:		usDelay(300);
 							break;
 
 		case FeedMove:		if(currentpos->toolspeed == 0)
 							{
-								usDelay(650);
+								usDelay(600);
 							}
 							else
 							{
@@ -342,7 +248,7 @@ void StepDelay(CP* currentpos)
 							}
 							break;
 
-		default:	usDelay(800);
+		default:	usDelay(600);
 					break;
 	}
 }

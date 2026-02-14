@@ -46,7 +46,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PV */
 extern volatile uint8_t us_delay_flag;
 extern volatile uint8_t switches;
-extern volatile uint8_t buttons;
+extern volatile uint8_t safety_sw_state;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -273,32 +273,32 @@ void EXTI9_5_IRQHandler(void)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_6);
     /* USER CODE BEGIN LL_EXTI_LINE_6 */
-    if(LL_GPIO_IsInputPinSet(SW_YH_GPIO_Port, SW_YH_Pin))	{ switches |= SW_Y_H;}
-    else{ switches &= ~SW_Y_H;}
+    if(LL_GPIO_IsInputPinSet(SW_YH_GPIO_Port, SW_YH_Pin))	{ switches &= ~SW_Y_H;}
+    else{ switches |= SW_Y_H;}
     /* USER CODE END LL_EXTI_LINE_6 */
   }
   if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_7) != RESET)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_7);
     /* USER CODE BEGIN LL_EXTI_LINE_7 */
-    if(LL_GPIO_IsInputPinSet(SW_YE_GPIO_Port, SW_YE_Pin))	{ switches |= SW_Y_E;}
-    else{ switches &= ~SW_Y_E;}
+    if(LL_GPIO_IsInputPinSet(SW_YE_GPIO_Port, SW_YE_Pin))	{ switches &= ~SW_Y_E;}
+    else{ switches |= SW_Y_E;}
     /* USER CODE END LL_EXTI_LINE_7 */
   }
   if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_8) != RESET)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_8);
     /* USER CODE BEGIN LL_EXTI_LINE_8 */
-    if(LL_GPIO_IsInputPinSet(SW_XH_GPIO_Port, SW_XH_Pin))	{ switches |= SW_X_H;}
-    else{ switches &= ~SW_X_H;}
+    if(LL_GPIO_IsInputPinSet(SW_XH_GPIO_Port, SW_XH_Pin))	{ switches &= ~SW_X_H;}
+    else{ switches |= SW_X_H;}
     /* USER CODE END LL_EXTI_LINE_8 */
   }
   if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_9) != RESET)
   {
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_9);
     /* USER CODE BEGIN LL_EXTI_LINE_9 */
-    if(LL_GPIO_IsInputPinSet(SW_XE_GPIO_Port, SW_XE_Pin))	{ switches |= SW_X_E;}
-    else{ switches &= ~SW_X_E;}
+    if(LL_GPIO_IsInputPinSet(SW_XE_GPIO_Port, SW_XE_Pin))	{ switches &= ~SW_X_E;}
+    else{ switches |= SW_X_E;}
     /* USER CODE END LL_EXTI_LINE_9 */
   }
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
@@ -337,6 +337,31 @@ void SPI2_IRQHandler(void)
   /* USER CODE BEGIN SPI2_IRQn 1 */
 
   /* USER CODE END SPI2_IRQn 1 */
+}
+
+/**
+  * @brief This function handles EXTI line[15:10] interrupts.
+  */
+void EXTI15_10_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_13) != RESET)
+  {
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_13);
+    /* USER CODE BEGIN LL_EXTI_LINE_13 */
+    safety_sw_state ^= 1;//toggle
+    uint8_t msg[] = {"Safety SW ON "};
+    if(safety_sw_state == 0)	{ msg[11]='F'; msg[12]='F';} else{}
+    ext_ctr_transmit_string(PrintInfo_cmd, msg, 13);
+    LL_mDelay(1000);//force prevent anything to move as this is the highest prio interrupt
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_13);//clear again to make sure not calling right after
+    /* USER CODE END LL_EXTI_LINE_13 */
+  }
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+
+  /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
 /**

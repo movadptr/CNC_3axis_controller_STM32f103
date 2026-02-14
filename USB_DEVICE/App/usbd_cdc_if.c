@@ -298,7 +298,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 				LL_mDelay(100);
 
 				uint8_t str[] = {"Too long cmd"};
-				ext_brd_transmit_string(PrintInfo_cmd, str, sizeof(str));
+				ext_ctr_transmit_string(PrintInfo_cmd, str, sizeof(str));
 
 
 				Error_Handler();

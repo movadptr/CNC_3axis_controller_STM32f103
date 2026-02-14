@@ -50,6 +50,12 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+typedef struct
+{
+	uint32_t cmd;
+	void* params;
+}cmd_struct;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -63,14 +69,43 @@ extern "C" {
 #define USE_INTERRUPT_US_DELAY
 //#define USE_BLOCKING_US_DELAY
 
-#define RXBUFFSIZE	100U
+#define RXBUFFSIZE			100U
+#define EXTCTRLPRINTMAXLEN	20U
 
-//command byte defines for extension shield
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+#define CMDBUFFSIZE 		1U //20 //machine control command buffer size //TODO increase when implementing cmd buffering to use accelerations
+//machine control command buffer defines
+//commands with no agument
+#define CMD_ERROR				0xff
+#define CMD_INITIALIZE			0x01 //sets the macine to the default state
+#define CMD_HOMEPOS				0x02 //drags the tool to the home position
+#define CMD_ENDPOS				0x03 //drags the tool to the end position (on Z axis it will be the top, not to interfere with anything on the machine bed)
+#define CMD_GETCURRENTPOS		0x04 //sends back the current position (in machine coordinates) on the VCP
+#define CMD_GETORIGIN			0x05 //sends back the position (offset) of the orgigin (in machine coordinates) on the VCP
+#define CMD_SETAXLEORIGIN_X		0x06 //sets the origin on the X axle to the current position
+#define CMD_SETAXLEORIGIN_Y		0x07 //sets the origin on the Y axle to the current position
+#define CMD_SETAXLEORIGIN_Z		0x08 //sets the origin on the Z axle to the current position
+//commands with 1 argument
+#define CMD_TOOLSPEED			0x10 //sets the movement speed in mm/s //arg --> int32_t
+//commads with block argument
+#define CMD_PLOT_A				0x20 //plot absolute //arg --> 3* int32_t as a block
+#define CMD_PLOT_R				0x21 //plot relative //arg --> 3* int32_t as a block
+#define CMD_PLOT_U				0x22 //rapid move    //arg --> 3* int32_t as a block
+#define CMD_PLOT_D				0x23 //feed move     //arg --> 3* int32_t as a block
+#define CMD_PRINTFILENAME		0x24 //prints the given text to the filename row on the screen //arg --> uin8_t null terminated block
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+//command byte defines for extension controller
 #define	PrintFilenameTXT_cmd		0x01
 #define	PrintCNCcmd_cmd				0x02
 #define PrintInfo_cmd				0x03
 #define	PrintCNCcmdAndLineNum_cmd	0x04
 
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -82,14 +117,25 @@ void usDelay(uint32_t val);
 void msDelay(uint32_t val);
 
 int32_t mypow10(int32_t exponent);
-void eval_and_execute_plot_cmd(uint8_t *cmdstr, uint32_t len, CP *currentpos);
-uint8_t eval_arg_in_cmd(uint8_t* cmdstr, uint8_t startindx, char delimiter, uint8_t maxlen, int32_t* numarg);
-void ResetCDCrxBuffer(void);
 uint8_t CDCsend(uint8_t *str, uint32_t len, uint8_t retries);
-void ext_brd_transmit_string(uint8_t printCmd, uint8_t* strbuff, uint8_t len);
+
+uint8_t eval_arg_in_cmd(uint8_t* cmdstr, uint8_t startindx, char delimiter, uint8_t maxlen, int32_t* numarg);
+int8_t eval_plot_cmd(uint8_t *cmdstr, uint32_t len, CP *currentpos, cmd_struct* cmds);
+void handleCmd(cmd_struct** cmdBuff_f, uint8_t* cmdBuffIndx_f);
+
+void execute_plot_cmd(cmd_struct *cmdstr, CP *currentpos);
+void execute_cmd(cmd_struct *cmdstr, CP* currentpos, volatile uint32_t *num_of_cmd_line_p);
+
+void screen_update(cmd_struct *cmdstr);
+
+void ext_ctr_transmit_string(uint8_t printCmd, uint8_t* strbuff, uint8_t len);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SAFETY_SW_Pin LL_GPIO_PIN_13
+#define SAFETY_SW_GPIO_Port GPIOC
+#define SAFETY_SW_EXTI_IRQn EXTI15_10_IRQn
 #define SPI2_EXT_CTR_BSY_Pin LL_GPIO_PIN_14
 #define SPI2_EXT_CTR_BSY_GPIO_Port GPIOC
 #define DIR_X_Pin LL_GPIO_PIN_1

@@ -12,18 +12,23 @@
 #include "main.h"
 
 
+#define XaxisLen	35700L	//356.3mm
+#define YaxisLen	31800L	//317.5mm
+#define ZaxisLen	1900L	//25mm //TODO change after Zaxis build, also consider if 200val is appropriate when stepout from limit sw proximit at gotohome()
+
+#define XSTEPLENMM	0.00998f
+#define YSTEPLENMM	0.00998f
+#define ZSTEPLENMM	0.01315f//TODO update after Zaxis build
+
+//////////////////////////////////////////////////
+
 #define CMD_DONE_CHAR	(';')
+
+#define BUFFERED_CMD_TERMINATOR	('.')
+#define SINGLE_CMD_TERMINATOR	(';')
 
 #define FORWARD		1
 #define BACKWARD	(-1)
-
-#define XaxisLen	9600L
-#define YaxisLen	14200L
-#define ZaxisLen	1900L
-
-#define XSTEPLENMM	0.02269791667f
-#define YSTEPLENMM	0.02082394366f
-#define ZSTEPLENMM	0.01315789474f
 
 //limit switch defines
 #define SW_X_H	0x01//X axis home side switch
@@ -48,9 +53,12 @@
 
 typedef struct
 {
-	uint32_t current_pos_x;
-	uint32_t current_pos_y;
-	uint32_t current_pos_z;
+	int32_t current_pos_x;
+	int32_t current_pos_y;
+	int32_t current_pos_z;
+	int32_t origin_offset_x;
+	int32_t origin_offset_y;
+	int32_t origin_offset_z;
 	int32_t toolspeed;//mm/s	//if zero then a default val will be used
 	uint32_t stp_delay_us;
 	uint16_t curr_state;
@@ -83,14 +91,14 @@ typedef struct
 	volatile int8_t dir;
 	volatile uint8_t sw1MSK;
 	volatile uint8_t sw2MSK;
-	volatile uint32_t steps;
+	volatile int32_t steps;
 	volatile int32_t stepsTaken;
 	GPIO_TypeDef* GPIOport;
 	uint32_t GPIOpin;
 }axle;
 
 void get_limit_sw_state(void);
-void A4988_init(CP *currentpos, uint16_t stepsizeX, uint16_t stepsizeY, uint16_t stepsizeZ);
+void A4988_init(CP *currentpos, uint16_t stepsize);
 void A4988_power_down(void);
 void stepM(uint8_t M_axis);
 void stepp(uint8_t M_axis, int8_t dir, uint32_t steps);
@@ -100,9 +108,9 @@ void StepDelay(CP* currentpos);
 
 void stepz(uint32_t z, int8_t dirz, CP* currentpos);
 
-void stepxyz25D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int8_t dirz, CP* currentpos);
-void stepxyz3D(uint32_t x, int8_t dirx, uint32_t y, int8_t diry, uint32_t z, int8_t dirz, CP* currentpos);
+void stepxyz25D(int32_t x, int8_t dirx, int32_t y, int8_t diry, int32_t z, int8_t dirz, CP* currentpos);
+void stepxyz3D(int32_t x, int8_t dirx, int32_t y, int8_t diry, int32_t z, int8_t dirz, CP* currentpos);
 void HPGL_PR(int32_t xmove, int32_t ymove, int32_t zmove,CP* currentpos);
-void HPGL_PA(uint32_t xcoord, uint32_t ycoord, uint32_t zcoord, CP* currentpos);
+void HPGL_PA(int32_t xcoord, int32_t ycoord, int32_t zcoord, CP* currentpos);
 
 #endif /* INC_STEPPER_H_ */

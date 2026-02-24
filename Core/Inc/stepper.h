@@ -11,15 +11,16 @@
 #include "stdint.h"
 #include "main.h"
 
+//                  1/16 step  1/4 step
+#define XaxisLen	142800L   //35700L	//356.3mm
+#define YaxisLen	127200L   //31800L	//317.5mm
+#define ZaxisLen	7600L     //1900L	//25mm //TODO change after Zaxis build, also consider if 200val is appropriate when stepout from limit sw proximit at gotohome()
 
-#define XaxisLen	35700L	//356.3mm
-#define YaxisLen	31800L	//317.5mm
-#define ZaxisLen	1900L	//25mm //TODO change after Zaxis build, also consider if 200val is appropriate when stepout from limit sw proximit at gotohome()
+#define XSTEPLENMM	0.002495f //0.00998f
+#define YSTEPLENMM	0.002495f //0.00998f
+#define ZSTEPLENMM	0.0032875f//0.01315f //TODO update after Zaxis build
 
-#define XSTEPLENMM	0.00998f
-#define YSTEPLENMM	0.00998f
-#define ZSTEPLENMM	0.01315f//TODO update after Zaxis build
-
+#define LIMITSWSTEPOUT	800L  //200L  //how many steps to perform after init to step out of limit switch proximity
 //////////////////////////////////////////////////
 
 #define CMD_DONE_CHAR	(';')

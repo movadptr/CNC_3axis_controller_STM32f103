@@ -122,7 +122,7 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
-  A4988_init(&stepper_pos, stepsize_1_4);
+  A4988_init(&stepper_pos, stepsize_1_16);
 
   __enable_irq();
 
@@ -133,7 +133,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  stepper_pos.toolspeed = 20;// mm/s
+  stepper_pos.toolspeed = DEFAULTTOOLSPEED;
   stepper_pos.curr_state &= ~(RapidMove | RelativeStep_MSK);
   stepper_pos.curr_state |= (FeedMove | AbsoluteStep_MSK);
   num_of_cmd_line = 1;
@@ -673,7 +673,7 @@ void execute_cmd(cmd_struct *cmdstr, CP* currentpos, volatile uint32_t *num_of_c
 		default:
 		case CMD_ERROR: 			break;
 
-		case CMD_INITIALIZE: 		currentpos->toolspeed = 20;// mm/s
+		case CMD_INITIALIZE: 		currentpos->toolspeed = DEFAULTTOOLSPEED;
 									currentpos->curr_state &= ~(RapidMove | RelativeStep_MSK);
 									currentpos->curr_state |= (FeedMove | AbsoluteStep_MSK);
 									currentpos->origin_offset_x = 0;

@@ -54,3 +54,4 @@ dkms.conf
 /Release
 *.xml
 *.launch
+*.prefs

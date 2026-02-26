@@ -87,7 +87,7 @@ typedef struct
 #define CMD_SETAXLEORIGIN_Y		0x07 //sets the origin on the Y axle to the current position
 #define CMD_SETAXLEORIGIN_Z		0x08 //sets the origin on the Z axle to the current position
 //commands with 1 argument
-#define CMD_TOOLSPEED			0x10 //sets the movement speed in mm/s //arg --> int32_t
+#define CMD_TOOLSPEED			0x10 //sets the movement speed in um/s //arg --> int32_t
 //commads with block argument
 #define CMD_PLOT_A				0x20 //plot absolute //arg --> 3* int32_t as a block
 #define CMD_PLOT_R				0x21 //plot relative //arg --> 3* int32_t as a block

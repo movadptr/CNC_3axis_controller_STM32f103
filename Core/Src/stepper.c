@@ -184,7 +184,7 @@ void stepxyz3D(int32_t x, int8_t dirx, int32_t y, int8_t diry, int32_t z, int8_t
 		//calculate the delay to achive the required tool speed
 		//the outer axis will perform a step in every iteration so we use that stepsize for the calc
 		//in one step the delay is performed 2 times (after the rising and after the falling edge) so we divide by 2
-		currentpos->stp_delay_us = (uint32_t)((((toolpath_len/*mm*/ / currentpos->toolspeed/*mm/s*/) / axt[2]->steps) * 1000 * 1000/*us*/)/2);
+		currentpos->stp_delay_us = (uint32_t)((((toolpath_len/*mm*/ / currentpos->toolspeed/*um/s*/) / axt[2]->steps) * 1000 * 1000 * 1000 /*us*/)/2);
 		//could further compensate for the processing and other stuff, but it is good enough
 	}else{}
 

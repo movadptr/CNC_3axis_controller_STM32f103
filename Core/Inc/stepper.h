@@ -21,6 +21,8 @@
 #define ZSTEPLENMM	0.0032875f//0.01315f //TODO update after Zaxis build
 
 #define LIMITSWSTEPOUT	800L  //200L  //how many steps to perform after init to step out of limit switch proximity
+
+#define DEFAULTTOOLSPEED	10000L //um/s
 //////////////////////////////////////////////////
 
 #define CMD_DONE_CHAR	(';')
@@ -60,7 +62,7 @@ typedef struct
 	int32_t origin_offset_x;
 	int32_t origin_offset_y;
 	int32_t origin_offset_z;
-	int32_t toolspeed;//mm/s	//if zero then a default val will be used
+	int32_t toolspeed;// um/s	//if zero then a default val will be used
 	uint32_t stp_delay_us;
 	uint16_t curr_state;
 	uint8_t error_state;
